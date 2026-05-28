@@ -7,6 +7,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import com.ai.chat.models.AppUser;
@@ -46,29 +48,70 @@ public DaoAuthenticationProvider authenticationprovider() {
 	provider.setPasswordEncoder(passwordEncoder());
 	return provider ;
 }
-
+@Bean
+public WebMvcConfigurer corsConfigurer() {
+    return new WebMvcConfigurer() {
+        @Override
+        public void addCorsMappings(CorsRegistry registry) {
+            registry.addMapping("/**")
+                    .allowedOrigins("https://aichat-frontend-eight.vercel.app","0.0.0.0")
+                    .allowedMethods("*")
+                    .allowedHeaders("*")
+                    .allowCredentials(true);
+        }
+    };
+}
 @Bean
 public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+	
 	http
-	.csrf(csrf -> csrf.disable())
-	.cors(cors ->{})
-	.authorizeHttpRequests(auth -> auth
-			.requestMatchers(
-					"/api/auth/register",
-					"/api/auth/login",
-					"/api/auth/me"
-					).permitAll()
-			.anyRequest().authenticated()
-			)
-			.formLogin(form -> form
-					.loginProcessingUrl("/api/auth/login")
-			        .successHandler((req,res,auth) -> res.setStatus(200))
-			        .failureHandler((req,res,ex) -> res.setStatus(401))
-			        )
-			.logout(logout -> logout
-					.logoutUrl("/api/auth.logout")
-					.logoutSuccessHandler((req,res,auth) -> res.setStatus(200))
-					);	
+    .csrf(csrf -> csrf.disable())
+
+    .cors(cors -> {})
+
+    .authenticationProvider(authenticationprovider())
+
+    .authorizeHttpRequests(auth -> auth
+            .requestMatchers(
+                    "/api/auth/register",
+                    "/api/auth/login"
+            ).permitAll()
+            .anyRequest().authenticated()
+    )
+
+    .formLogin(form -> form
+            .loginProcessingUrl("/api/auth/login")
+            .successHandler((req, res, auth) -> res.setStatus(200))
+            .failureHandler((req, res, ex) -> res.setStatus(401))
+    )
+
+    .logout(logout -> logout
+            .logoutUrl("/api/auth/logout")
+            .logoutSuccessHandler((req, res, auth) -> res.setStatus(200))
+    );
+
 	return http.build();
+	
+//	http
+//	.csrf(csrf -> csrf.disable())
+//	.cors(cors ->{})
+//	.authorizeHttpRequests(auth -> auth
+//			.requestMatchers(
+//					"/api/auth/register",
+//					"/api/auth/login",
+//					"/api/auth/me"
+//					).permitAll()
+//			.anyRequest().authenticated()
+//			)
+//			.formLogin(form -> form
+//					.loginProcessingUrl("/api/auth/login")
+//			        .successHandler((req,res,auth) -> res.setStatus(200))
+//			        .failureHandler((req,res,ex) -> res.setStatus(401))
+//			        )
+//			.logout(logout -> logout
+//					.logoutUrl("/api/auth.logout")
+//					.logoutSuccessHandler((req,res,auth) -> res.setStatus(200))
+//					);	
+//	return http.build();
 }
 }
