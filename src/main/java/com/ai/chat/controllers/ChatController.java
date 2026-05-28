@@ -29,27 +29,30 @@ public class ChatController {
 
     @Autowired
     private SarvamAIService sarvamAIService;
-
+    
     @PostMapping("/response")
     public ChatResponse chat(@RequestBody ChatRequest request,
                              Principal principal) {
 
-        AppUser user = user_repo
-                .findByUsername(principal.getName())
+        AppUser user = user_repo.findByUsername(principal.getName())
                 .orElseThrow();
 
-        List<ChatMessage> history =
-                chatrepo.findByUserOrderByCreatedAt(user);
-
+        // 1. Save user message FIRST
         ChatMessage userMsg = new ChatMessage();
         userMsg.setRole("user");
         userMsg.setContent(request.getMessage());
         userMsg.setUser(user);
         chatrepo.save(userMsg);
 
+        // 2. Now fetch UPDATED history (includes new message)
+        List<ChatMessage> history =
+                chatrepo.findByUserOrderByCreatedAt(user);
+
+        // 3. Call AI
         String aiReply =
                 sarvamAIService.askSarvam(history, request.getMessage());
 
+        // 4. Save AI response
         ChatMessage aiMsg = new ChatMessage();
         aiMsg.setRole("assistant");
         aiMsg.setContent(aiReply);
@@ -58,6 +61,35 @@ public class ChatController {
 
         return new ChatResponse(aiReply);
     }
+
+//    @PostMapping("/response")
+//    public ChatResponse chat(@RequestBody ChatRequest request,
+//                             Principal principal) {
+//
+//        AppUser user = user_repo
+//                .findByUsername(principal.getName())
+//                .orElseThrow();
+//
+//        List<ChatMessage> history =
+//                chatrepo.findByUserOrderByCreatedAt(user);
+//
+//        ChatMessage userMsg = new ChatMessage();
+//        userMsg.setRole("user");
+//        userMsg.setContent(request.getMessage());
+//        userMsg.setUser(user);
+//        chatrepo.save(userMsg);
+//
+//        String aiReply =
+//                sarvamAIService.askSarvam(history, request.getMessage());
+//
+//        ChatMessage aiMsg = new ChatMessage();
+//        aiMsg.setRole("assistant");
+//        aiMsg.setContent(aiReply);
+//        aiMsg.setUser(user);
+//        chatrepo.save(aiMsg);
+//
+//        return new ChatResponse(aiReply);
+//    }
 
     @GetMapping("/history")
     public List<ChatMessage> history(Principal principal) {
